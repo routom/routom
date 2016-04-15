@@ -30,7 +30,7 @@
             (rt/get-path hierarchy :invalid)
             false
             (catch js/Object e
-              (= :routom/invalid-route-id (get (.-data e) :type) )))))))
+              (= :routom/invalid-route-id (get (ex-data e) :type) )))))))
 
 (deftest path->keys
   (is (= (rt/path->keys [:a :b]) [:a :sub-routes :b]))
@@ -49,16 +49,26 @@
            nil))))
 
 (deftest create-hierarchy
-  (let [routes {:root
-                {:sub-routes
-                 {:home
+  (testing "unique keys"
+    (let [routes {:root
                   {:sub-routes
-                   {:page1 nil}}}}}
-        hierarchy (rt/get-hierarchy routes)]
-    (is (= (keys hierarchy) '(:root :home :page1)))
-    (is (= (:root hierarchy) nil))
-    (is (= (:home hierarchy) :root))
-    (is (= (:page1 hierarchy) :home))))
+                   {:home
+                    {:sub-routes
+                     {:page1 nil}}}}}
+          hierarchy (rt/create-hierarchy routes)]
+      (is (= (keys hierarchy) '(:root :home :page1)))
+      (is (= (:root hierarchy) nil))
+      (is (= (:home hierarchy) :root))
+      (is (= (:page1 hierarchy) :home))))
+  (testing "duplicate keys"
+    (let [routes {:root
+                  {:sub-routes
+                   {:root {}}}}]
+      (is (try
+            (rt/create-hierarchy routes)
+            false
+            (catch js/Object e
+              (= :routom/duplicate-route-id (:type (ex-data e)))))))))
 
 
 

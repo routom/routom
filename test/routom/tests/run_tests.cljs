@@ -1,4 +1,4 @@
-(ns routom.tests.run-tests
+(ns ^:figwheel-no-load routom.tests.run-tests
   (:require [cljs.test :refer-macros [run-tests]]
             [routom.tests.util-tests]
             [routom.tests.core-tests]))

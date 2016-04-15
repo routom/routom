@@ -26,13 +26,16 @@
   (let [keys (path->keys path)]
     (get-in route-map keys)))
 
-(defn- get-hierarchy
+(defn- create-hierarchy
   ([routes]
-   (get-hierarchy {children-key routes} nil {}))
+   (create-hierarchy {children-key routes} nil {}))
   ([routes parent hierarchy]
    (reduce-kv
      (fn [hier k v]
+       (when (contains? hier k)
+         (throw (ex-info (str "route id " k " must be unique in the route tree")
+                         {:type :routom/duplicate-route-id})))
        (let [new-hier (assoc hier k parent)]
          (if (contains? v children-key)
-           (get-hierarchy v k new-hier)
+           (create-hierarchy v k new-hier)
            new-hier))) hierarchy (get routes children-key))))
