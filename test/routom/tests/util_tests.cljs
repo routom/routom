@@ -4,11 +4,6 @@
             [cljsjs.react]
             [routom.util :as rt]))
 
-
-
-
-
-
 (deftest test-get-path
   (let [hierarchy {:root       nil
                    :child      :root
@@ -23,6 +18,8 @@
               false
               (catch js/Object e
                 true)))))
+    (testing "root"
+      (is (= '(:root) (rt/get-path hierarchy :root))))
     (testing "grandchild"
       (is (= '(:root :child :grandchild) (rt/get-path hierarchy :grandchild))))
     (testing "invalid key"

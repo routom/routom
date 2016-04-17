@@ -1,4 +1,4 @@
-(defproject org.routom/routom "0.1.0-SNAPSHOT"
+(defproject org.routom/routom "0.1.0-alpha3"
   :description " An Om.Next routing solution for the browser and React-Native"
   :url "https://github.com/routom/routomE"
   :license {:name "The Unlicense"
@@ -54,7 +54,7 @@
                            :pretty-print false}}]}
 
   :figwheel {;; :http-server-root "public" ;; default and assumes "resources"
-             ;; :server-port 3449 ;; default
+             :server-port 3459 ;; default
              ;; :server-ip "127.0.0.1"
 
              :css-dirs ["resources/public/css"] ;; watch and update CSS

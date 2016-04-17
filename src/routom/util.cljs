@@ -4,15 +4,14 @@
 (defn- get-path
   [hierarchy name]
   {:pre [(map? hierarchy)]}
-  (let [parent (get hierarchy name)]
-    (if (not parent)
-      (throw (ex-info (str "No route exists for route id " name)
-                      {:type :routom/invalid-route-id}))
-      (loop [node parent
-             path `(~name)]
-        (if (not node)
-          path
-          (recur (get hierarchy node) (cons node path)))))))
+  (if (not (contains? hierarchy name))
+    (throw (ex-info (str "No route exists for route id " name)
+                    {:type :routom/invalid-route-id}))
+    (loop [node (get hierarchy name)
+           path `(~name)]
+      (if (not node)
+        path
+        (recur (get hierarchy node) (cons node path))))))
 
 (def children-key :sub-routes)
 
