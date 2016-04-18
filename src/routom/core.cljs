@@ -48,27 +48,29 @@
             (recur (butlast p) new-params new-query))))
       )))
 
-(defui ModuleStatus
-  Object
-  (initLocalState [_]
-    {:status :loading})
-  (componentWillMount
-    [this]
-    (let [{:keys [module-id]} (om/props this)
-          manager (module-manager/getInstance)]
-      (if-let [module (.getModuleInfo manager module-id)]
-        (let [on-error (.registerErrback module (fn [_] (om/update-state! this assoc :status :error)))
-              on-load (.registerCallback module (fn [_] (om/update-state! this assoc :status :success)))]
-          (om/update-state! this assoc :on-err on-error)
-          (om/update-state! this assoc :on-load on-load)))))
-  (componentWillUnmount [this]
-    (let [{:keys [on-error on-load]} (om/get-state this)]
-      (when on-error (.abort on-error))
-      (when on-load (.abort on-load))))
-  (render [this]
-    (let [{:keys [render-status module-id]} (om/props this)
-          {:keys [status]} (om/get-state this)]
-      (when render-status (render-status status module-id)))))
+(defn module-status
+  [render-status]
+  (ui
+    Object
+    (initLocalState [_]
+                    {:status :loading})
+    (componentWillMount
+      [this]
+      (let [{:keys [module-id]} (om/props this)
+            manager (module-manager/getInstance)]
+        (if-let [module (.getModuleInfo manager module-id)]
+          (let [on-error (.registerErrback module (fn [_] (om/update-state! this assoc :status :error)))
+                on-load (.registerCallback module (fn [_] (om/update-state! this assoc :status :success)))]
+            (om/update-state! this assoc :on-err on-error)
+            (om/update-state! this assoc :on-load on-load)))))
+    (componentWillUnmount [this]
+                          (let [{:keys [on-error on-load]} (om/get-state this)]
+                            (when on-error (.abort on-error))
+                            (when on-load (.abort on-load))))
+    (render [this]
+            (let [{:keys [module-id]} (om/props this)
+                  {:keys [status]} (om/get-state this)]
+              (when render-status (render-status status module-id))))))
 
 (defn get-element-tree
   [route-map path root-props render-module-status]
@@ -81,8 +83,8 @@
 
         (if module-id
           (recur (butlast p)
-                 (when (some? render-module-status)
-                   ((om/factory ModuleStatus)
+                 (when render-module-status
+                   ((om/factory render-module-status)
                      {:module-id     module-id
                       :render-status render-module-status})))
           (let [fac (if ui #(om/factory ui) #(om/factory route))
@@ -117,6 +119,8 @@
      (add-watch routes :route/hierarchy (fn [_ _ _ next-state]
                                           (reset! route-hierarchy (u/create-hierarchy next-state))))
      (let [set-active-route! #(reset! active-route %1)
+           ModuleStatus (when render-module-status
+                          (module-status render-module-status))
            AppRoot
            (ui
              static om/IQueryParams
@@ -155,7 +159,7 @@
                                root-props (merge
                                             props
                                             active-route)
-                               element-tree (get-element-tree @routes path root-props render-module-status)]
+                               element-tree (get-element-tree @routes path root-props ModuleStatus)]
                            element-tree))
                        )))]
        {:root-class           AppRoot
