@@ -122,21 +122,21 @@
              static om/IQueryParams
              (params
                [this]
-               (when-let [{:keys [route/name route/params]} @active-route]
-                 (:params (get-active-query routes route-hierarchy name params))))
+               (when-let [{:keys [route/id route/params]} @active-route]
+                 (:params (get-active-query routes route-hierarchy id params))))
              static om/IQuery
              (query
                [this]
-               (when-let [{:keys [route/name route/params]} @active-route]
-                 (:query (get-active-query routes route-hierarchy name params))))
+               (when-let [{:keys [route/id route/params]} @active-route]
+                 (:query (get-active-query routes route-hierarchy id params))))
              Object
              (componentWillMount
                [this]
 
-               (letfn [(on-route-changed [{:keys [route/name route/params] :as active-route}]
+               (letfn [(on-route-changed [{:keys [route/id route/params] :as active-route}]
 
                          (when active-route
-                           (set-active-query! this routes route-hierarchy name params)))]
+                           (set-active-query! this routes route-hierarchy id params)))]
                  (add-watch
                    active-route
                    :app-root
@@ -148,9 +148,9 @@
                [this]
                (remove-watch active-route :app-root))
              (render [this]
-                     (let [{:keys [route/name] :as active-route} @active-route]
+                     (let [{:keys [route/id] :as active-route} @active-route]
                        (if active-route
-                         (let [path (u/get-path @route-hierarchy name)
+                         (let [path (u/get-path @route-hierarchy id)
                                props (om/props this)
                                root-props (merge
                                             props
@@ -158,8 +158,8 @@
                                element-tree (get-element-tree @routes path root-props render-module-status)]
                            element-tree))
                        )))]
-       {:AppRoot           AppRoot
-        :set-active-route! set-active-route!}))))
+       {:root-class           AppRoot
+        :set-route! set-active-route!}))))
 
 
 
