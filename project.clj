@@ -1,6 +1,6 @@
-(defproject org.routom/routom "0.1.0-alpha3"
+(defproject org.routom/routom "0.1.0-alpha4-SNAPSHOT"
   :description " An Om.Next routing solution for the browser and React-Native"
-  :url "https://github.com/routom/routomE"
+  :url "https://github.com/routom/routom"
   :license {:name "The Unlicense"
             :url "http://unlicense.org/UNLICENSE"}
 
@@ -9,6 +9,7 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/clojurescript "1.7.228"]
                  [org.omcljs/om "1.0.0-alpha32"]
+                 [bidi "2.0.4"]
                  [org.clojure/core.async "0.2.374"
                   :exclusions [org.clojure/tools.reader]]]
   
