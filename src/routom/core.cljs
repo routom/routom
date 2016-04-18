@@ -71,7 +71,7 @@
       (when render-status (render-status status module-id)))))
 
 (defn get-element-tree
-  [route-map path root-props props render-module-status]
+  [route-map path root-props render-module-status]
   (loop [p path
          element nil]
     (if (empty? p)
@@ -86,20 +86,25 @@
                      {:module-id     module-id
                       :render-status render-module-status})))
           (let [fac (if ui #(om/factory ui) #(om/factory route))
+                props (get root-props (last p))
                 child-element (if element
                                 ((fac) (om/computed props root-props) element)
                                 ((fac) (om/computed props root-props))
                                 )]
             (recur (butlast p) child-element)))))))
 
-(defn- set-active-query!
-  [component route-atom hierarchy-atom route-id route-params]
+(defn- get-active-query
+  [route-atom hierarchy-atom route-id route-params]
   (let [routes @route-atom
         hierarchy @hierarchy-atom
         path (u/get-path hierarchy route-id)
         route (u/get-route routes path)]
     (if (some? route)
-      (om/set-query! component (get-route-query route-atom [:root] path route-params)))))
+      (get-route-query route-atom [] path route-params))))
+
+(defn- set-active-query!
+  [component route-atom hierarchy-atom route-id route-params]
+  (om/set-query! component (get-active-query route-atom hierarchy-atom route-id route-params)))
 
 
 (defn init-router
@@ -114,8 +119,16 @@
      (let [set-active-route! #(reset! active-route %1)
            AppRoot
            (ui
+             static om/IQueryParams
+             (params
+               [this]
+               (when-let [{:keys [route/name route/params]} @active-route]
+                 (:params (get-active-query routes route-hierarchy name params))))
              static om/IQuery
-             (query [this] [:root])
+             (query
+               [this]
+               (when-let [{:keys [route/name route/params]} @active-route]
+                 (:query (get-active-query routes route-hierarchy name params))))
              Object
              (componentWillMount
                [this]
@@ -142,8 +155,7 @@
                                root-props (merge
                                             props
                                             active-route)
-                               route-props (get props name)
-                               element-tree (get-element-tree @routes path root-props route-props render-module-status)]
+                               element-tree (get-element-tree @routes path root-props render-module-status)]
                            element-tree))
                        )))]
        {:AppRoot           AppRoot
