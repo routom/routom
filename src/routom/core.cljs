@@ -16,13 +16,14 @@
 
 (defmulti init-module (fn [module-id] module-id))
 
-(defn- load-module!
+(defn- -load-module!
   [module-id route-path routes-atom]
   (.execOnLoad (module-manager/getInstance) module-id
                #(let [new-route (init-module module-id)]
-                 (js/setTimeout
-                   (fn [] (swap! routes-atom assoc-in (u/path->keys route-path) new-route)) 1000)
+                 (swap! routes-atom assoc-in (u/path->keys route-path) new-route)
                  )))
+
+(def load-module! (memoize -load-module!))
 
 (defn- get-route-query
   [route-atom default-query path route-params]
@@ -30,7 +31,7 @@
          params {}
          query default-query]
     (if (empty? p)
-      {:query  query
+      {:query  (if (empty? query) nil query)
        :params (merge params route-params)}
       (let [keys (u/path->keys p)
             {:keys [ui module-id] :as route} (get-in @route-atom keys)]
@@ -40,12 +41,13 @@
         (if module-id
           (do (load-module! module-id path route-atom)
               (recur [] params query))
-          (let [ui (or ui route)
-                root-query (if (irootquery? ui) (root-query ui) [])
-                new-query (into query `[{~(last keys) ~(with-meta (om/query ui) {:component ui})}])
-                new-query (into new-query root-query)
-                new-params (merge params (om/params ui))]
-            (recur (butlast p) new-params new-query))))
+          (if ui
+            (let [root-query (if (irootquery? ui) (root-query ui) [])
+                  new-query (into query `[{~(last keys) ~(with-meta (om/query ui) {:component ui})}])
+                  new-query (into new-query root-query)
+                  new-params (merge params (om/params ui))]
+              (recur (butlast p) new-params new-query))
+            (recur (butlast p) params query))))
       )))
 
 (defn module-status
@@ -59,10 +61,12 @@
       (let [{:keys [module-id]} (om/props this)
             manager (module-manager/getInstance)]
         (if-let [module (.getModuleInfo manager module-id)]
-          (let [on-error (.registerErrback module (fn [_] (om/update-state! this assoc :status :error)))
-                on-load (.registerCallback module (fn [_] (om/update-state! this assoc :status :success)))]
-            (om/update-state! this assoc :on-err on-error)
-            (om/update-state! this assoc :on-load on-load)))))
+          (if (.-isLoaded module)
+            (om/update-state! this assoc :status :success)
+            (let [on-error (.registerErrback module (fn [_] (om/update-state! this assoc :status :error)))
+                  on-load (.registerCallback module (fn [_] (om/update-state! this assoc :status :success)))]
+              (om/update-state! this assoc :on-err on-error)
+              (om/update-state! this assoc :on-load on-load))))))
     (componentWillUnmount [this]
                           (let [{:keys [on-error on-load]} (om/get-state this)]
                             (when on-error (.abort on-error))
@@ -84,16 +88,19 @@
         (if module-id
           (recur (butlast p)
                  (when render-module-status
-                   ((om/factory render-module-status)
-                     {:module-id     module-id
-                      :render-status render-module-status})))
-          (let [fac (if ui #(om/factory ui) #(om/factory route))
-                props (get root-props (last p))
-                child-element (if element
-                                ((fac) (om/computed props root-props) element)
-                                ((fac) (om/computed props root-props))
-                                )]
-            (recur (butlast p) child-element)))))))
+                   ((om/factory render-module-status {:keyfn :module-id})
+                     {:module-id module-id})))
+          (if ui
+            (let [route-id (last p)
+                  fac #(om/factory ui {:keyfn (fn [_] route-id)})
+                  props (or (get root-props route-id) {})
+                  props (vary-meta props assoc :om-path [route-id])
+                  child-element (if element
+                                  ((fac) (om/computed props root-props) element)
+                                  ((fac) (om/computed props root-props))
+                                  )]
+              (recur (butlast p) child-element))
+            (recur (butlast p) element)))))))
 
 (defn- get-active-query
   [route-atom hierarchy-atom route-id route-params]
@@ -106,7 +113,10 @@
 
 (defn- set-active-query!
   [component route-atom hierarchy-atom route-id route-params]
-  (om/set-query! component (get-active-query route-atom hierarchy-atom route-id route-params)))
+  (let [new-query (get-active-query route-atom hierarchy-atom route-id route-params)]
+    (println "setting active query" new-query)
+    (om/set-query! component new-query)
+    ))
 
 
 (defn init-router
@@ -118,7 +128,7 @@
          active-route (atom nil)]
      (add-watch routes :route/hierarchy (fn [_ _ _ next-state]
                                           (reset! route-hierarchy (u/create-hierarchy next-state))))
-     (let [set-active-route! #(reset! active-route %1)
+     (let [set-active-route! #(reset! active-route %)
            ModuleStatus (when render-module-status
                           (module-status render-module-status))
            AppRoot
@@ -138,6 +148,7 @@
                [this]
 
                (letfn [(on-route-changed [{:keys [route/id route/params] :as active-route}]
+                         (println "route changed..." active-route)
 
                          (when active-route
                            (set-active-query! this routes route-hierarchy id params)))]
@@ -152,18 +163,19 @@
                [this]
                (remove-watch active-route :app-root))
              (render [this]
-                     (let [{:keys [route/id] :as active-route} @active-route]
-                       (if active-route
+                     (let [{:keys [route/id] :as route} @active-route]
+                       (if route
                          (let [path (u/get-path @route-hierarchy id)
                                props (om/props this)
                                root-props (merge
                                             props
-                                            active-route)
+                                            route)
                                element-tree (get-element-tree @routes path root-props ModuleStatus)]
                            element-tree))
                        )))]
        {:root-class           AppRoot
-        :set-route! set-active-route!}))))
+        :set-route! set-active-route!
+        :get-route (fn [] @active-route)}))))
 
 
 

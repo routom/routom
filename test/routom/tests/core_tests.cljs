@@ -18,7 +18,7 @@
     (let [Route1 (ui
                    static om/IQuery
                    (query [this] [:a :b]))
-          route-atom (atom {:root Route1})]
+          route-atom (atom {:root {:ui Route1}})]
       (is (= {:query  [:default {:root [:a :b]}]
               :params {}}
              (rt/get-route-query route-atom [:default] '(:root) {})))))
@@ -28,7 +28,7 @@
                    (root-query [this] [:c :d])
                    static om/IQuery
                    (query [this] [:a :b]))
-          route-atom (atom {:root Route1})]
+          route-atom (atom {:root {:ui Route1}})]
       (is (= {:query  [:default {:root [:a :b]} :c :d]
               :params {}}
              (rt/get-route-query route-atom [:default] '(:root) {})))))
@@ -40,7 +40,7 @@
                    (root-query [this] [:c :d])
                    static om/IQuery
                    (query [this] '[:a ?p1]))
-          route-atom (atom {:root Route1})]
+          route-atom (atom {:root {:ui Route1}})]
       (is (= {:query  '[:default {:root [:a ?p1]} :c :d]
               :params {:p1 :e}}
              (rt/get-route-query route-atom [:default] '(:root) {})))
@@ -65,7 +65,7 @@
           route-atom (atom {:route1
                             {:ui Route1
                              :sub-routes
-                                 {:route2 Route2}}
+                                 {:route2 {:ui Route2}}}
                             })]
       (is (= {:query  '[
                         ;default query
