@@ -65,8 +65,8 @@
           route-atom (atom {:route1
                             {:ui Route1
                              :sub-routes
-                                 {:route2 {:ui Route2}}}
-                            })]
+                                 {:route2 {:ui Route2}}}})]
+
       (is (= {:query  '[
                         ;default query
                         :default

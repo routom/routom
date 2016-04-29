@@ -1,4 +1,4 @@
-(defproject org.routom/routom "0.1.0-alpha5-SNAPSHOT"
+(defproject org.routom/routom "0.1.0-alpha6-SNAPSHOT"
   :description " An Om.Next routing solution for the browser and React-Native"
   :url "https://github.com/routom/routom"
   :license {:name "The Unlicense"
@@ -58,7 +58,7 @@
              :server-port 3479 ;; default
              ;; :server-ip "127.0.0.1"
 
-             :css-dirs ["resources/public/css"] ;; watch and update CSS
+             :css-dirs ["resources/public/css"]}) ;; watch and update CSS
 
              ;; Start an nREPL server into the running figwheel process
              ;; :nrepl-port 7888
@@ -83,4 +83,4 @@
 
              ;; to configure a different figwheel logfile path
              ;; :server-logfile "tmp/logs/figwheel-logfile.log"
-             })
+

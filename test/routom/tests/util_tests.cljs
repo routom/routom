@@ -27,17 +27,17 @@
             (rt/get-path hierarchy :invalid)
             false
             (catch js/Object e
-              (= :routom/invalid-route-id (get (ex-data e) :type) )))))))
+              (= :routom/invalid-route-id (get (ex-data e) :type))))))))
 
 (deftest path->keys
   (is (= (rt/path->keys [:a :b]) [:a :sub-routes :b]))
   (is (= (rt/path->keys [:a :b :c]) [:a :sub-routes :b :sub-routes :c])))
 
 (deftest get-route
-  (let [routes {:root
+  (let [routes {:root}
                {:sub-routes
                 {:home
-                 {:ui nil}}}}]
+                 {:ui nil}}}]
     (is (= (rt/get-route routes
                          '(:root :home))
            {:ui nil}))

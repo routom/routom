@@ -6,6 +6,9 @@
 
 (defprotocol BidiRouter
   (unlisten [this])
+  (href-for
+    [this route-id route-params]
+    [this route-id route-params query-params])
   (path-for
     [this route-id route-params]
     [this route-id route-params query-params]))
@@ -42,7 +45,6 @@
                             (location->token default-route))]
                 (.replace history token)))
             (on-navigate [location]
-              (println "navigating..." location)
               (let [{:keys [handler route-params]} (token->location (.-pathname location))]
                 (if handler
                   (set-route!
@@ -50,7 +52,9 @@
                      :route/params (merge (if-let [query (.-query location)]
                                             (js->clj query :keywordize-keys true)
                                             {}) route-params)})
-                  (println "no handler for location " location))))]
+                  (set-route!
+                    {:route/id     :not-found
+                     :route/params (js->clj location :keywordize-keys true)}))))]
       (let [unlisten (.listen history
                               on-navigate)]
 
@@ -73,6 +77,9 @@
             (let [path (b/unmatch-pair @routes-atom {:handler route-id :params route-params})]
               (if query-params
                 (let [qs (.createFromMap QueryData (clj->js (or query-params {})))]
-                  (.createHref history (str path "?" qs)))
-                (.createHref history path)))
-            ))))))
+                  (str path "?" qs))
+                path)))
+          (href-for [this route-id route-params]
+            (href-for this route-id route-params nil))
+          (href-for [this route-id route-params query-params]
+            (.createHref history (path-for this route-id route-params query-params))))))))

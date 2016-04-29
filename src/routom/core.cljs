@@ -88,7 +88,7 @@
         (if module-id
           (recur (butlast p)
                  (when render-module-status
-                   ((om/factory render-module-status {:keyfn :module-id})
+                   #((om/factory render-module-status {:keyfn :module-id})
                      {:module-id module-id})))
           (if ui
             (let [route-id (last p)
@@ -96,8 +96,8 @@
                   props (or (get root-props route-id) {})
                   props (vary-meta props assoc :om-path [route-id])
                   child-element (if element
-                                  ((fac) (om/computed props root-props) element)
-                                  ((fac) (om/computed props root-props))
+                                  #((fac) (om/computed props (merge root-props %1)) element)
+                                  #((fac) (om/computed props (merge root-props %1)))
                                   )]
               (recur (butlast p) child-element))
             (recur (butlast p) element)))))))
@@ -171,11 +171,33 @@
                                             props
                                             route)
                                element-tree (get-element-tree @routes path root-props ModuleStatus)]
-                           element-tree))
+                           (element-tree)))
                        )))]
        {:root-class           AppRoot
         :set-route! set-active-route!
+        :ui->props (fn [env c]
+                     (let [props (om/default-ui->props env c)]
+                       (merge props @active-route)))
         :get-route (fn [] @active-route)}))))
+
+(defn has-subroute
+  [component]
+  (if (om/children component)
+    true
+    false))
+
+(defn try-render-subroute
+  ([component]
+   (try-render-subroute component {}))
+  ([component more-computed]
+   (let [subroutef (first (om/children component))]
+     (when subroutef (subroutef more-computed)))))
+(defn render-subroute
+  ([component]
+    (render-subroute component {}))
+  ([component more-computed]
+    (let [subroutef (first (om/children component))]
+      (subroutef more-computed))))
 
 
 
