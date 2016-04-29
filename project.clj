@@ -1,4 +1,4 @@
-(defproject org.routom/routom "0.1.0-alpha6-SNAPSHOT"
+(defproject org.routom/routom "0.1.0-alpha6"
   :description " An Om.Next routing solution for the browser and React-Native"
   :url "https://github.com/routom/routom"
   :license {:name "The Unlicense"
