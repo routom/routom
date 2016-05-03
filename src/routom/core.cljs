@@ -114,7 +114,6 @@
 (defn- set-active-query!
   [component route-atom hierarchy-atom route-id route-params]
   (let [new-query (get-active-query route-atom hierarchy-atom route-id route-params)]
-    (println "setting active query" new-query)
     (om/set-query! component new-query)
     ))
 
@@ -148,8 +147,6 @@
                [this]
 
                (letfn [(on-route-changed [{:keys [route/id route/params] :as active-route}]
-                         (println "route changed..." active-route)
-
                          (when active-route
                            (set-active-query! this routes route-hierarchy id params)))]
                  (add-watch
@@ -173,12 +170,12 @@
                                element-tree (get-element-tree @routes path root-props ModuleStatus)]
                            (element-tree)))
                        )))]
-       {:root-class           AppRoot
+       {:root-class AppRoot
         :set-route! set-active-route!
-        :ui->props (fn [env c]
-                     (let [props (om/default-ui->props env c)]
-                       (merge props @active-route)))
-        :get-route (fn [] @active-route)}))))
+        :ui->props  (fn [env c]
+                      (let [props (om/default-ui->props env c)]
+                        (when props (merge props @active-route))))
+        :get-route  (fn [] @active-route)}))))
 
 (defn has-subroute
   [component]
