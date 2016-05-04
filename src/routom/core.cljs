@@ -40,7 +40,7 @@
                           {:type :routom/invalid-route-path})))
         (if module-id
           (do (load-module! module-id path route-atom)
-              (recur [] params query))
+              (recur (butlast p) params query))
           (if ui
             (let [root-query (if (irootquery? ui) (root-query ui) [])
                   new-query (into query `[{~(last keys) ~(with-meta (om/query ui) {:component ui})}])
@@ -140,8 +140,12 @@
              static om/IQuery
              (query
                [this]
-               (when-let [{:keys [route/id route/params]} @active-route]
-                 (:query (get-active-query routes route-hierarchy id params))))
+               (let [default-query '[:root]]
+                 (if-let [{:keys [route/id route/params]} @active-route]
+                   (if-let [query (:query (get-active-query routes route-hierarchy id params))]
+                     query
+                     default-query)
+                   default-query)))
              Object
              (componentWillMount
                [this]
