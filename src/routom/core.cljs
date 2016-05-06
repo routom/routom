@@ -25,13 +25,24 @@
 
 (def load-module! (memoize -load-module!))
 
+(defn call-proto
+  [x pred f]
+  (if (pred x)
+    (f x)
+    ;; in advanced, statics will get elided
+    (when (goog/isFunction x)
+      (let [y (js/Object.create (. x -prototype))]
+        (when (pred y)
+          (f y))))))
+
 (defn- get-route-query
   [route-atom default-query path route-params]
   (loop [p path
          params {}
-         query default-query]
+         query default-query
+         component-query nil]
     (if (empty? p)
-      {:query  (if (empty? query) nil query)
+      {:query  (if (empty? query) nil (conj query component-query))
        :params (merge params route-params)}
       (let [keys (u/path->keys p)
             {:keys [ui module-id] :as route} (get-in @route-atom keys)]
@@ -40,14 +51,16 @@
                           {:type :routom/invalid-route-path})))
         (if module-id
           (do (load-module! module-id path route-atom)
-              (recur (butlast p) params query))
+              (recur (butlast p) params query component-query))
           (if ui
-            (let [root-query (if (irootquery? ui) (root-query ui) [])
-                  new-query (into query `[{~(last keys) ~(with-meta (om/query ui) {:component ui})}])
-                  new-query (into new-query root-query)
-                  new-params (merge params (om/params ui))]
-              (recur (butlast p) new-params new-query))
-            (recur (butlast p) params query))))
+            (let [root-query (or (call-proto ui #(implements? IRootQuery %) root-query) [])
+                  query-expr (with-meta (call-proto ui #(implements? om/IQuery %) om/query) {:component ui})
+                  component-query (if component-query (conj query-expr component-query) query-expr)
+                  component-query {(last keys) component-query}
+                  new-query (into query root-query)
+                  new-params (merge params (call-proto ui #(implements? om/IQuery %) om/params))]
+              (recur (butlast p) new-params new-query component-query))
+            (recur (butlast p) params query component-query))))
       )))
 
 (defn module-status
@@ -78,29 +91,41 @@
 
 (defn get-element-tree
   [route-map path root-props render-module-status]
-  (loop [p path
-         element nil]
-    (if (empty? p)
-      element
-      (let [keys (u/path->keys p)
-            {:keys [ui module-id] :as route} (get-in route-map keys)]
+  (loop [component-path [(first path)]
+         route-path component-path
+         rst (rest path)
+         add-to-parent nil]
+    (if (nil? route-path)
+      (add-to-parent nil)
+      (let [[nxt & rst*] rst
+            route-path* (if nxt (conj route-path nxt) nil)]
+        (let [keys (u/path->keys route-path)
+              {:keys [ui module-id] :as route} (get-in route-map keys)]
 
-        (if module-id
-          (recur (butlast p)
-                 (when render-module-status
-                   #((om/factory render-module-status {:keyfn :module-id})
-                     {:module-id module-id})))
-          (if ui
-            (let [route-id (last p)
-                  fac #(om/factory ui {:keyfn (fn [_] route-id)})
-                  props (or (get root-props route-id) {})
-                  props (vary-meta props assoc :om-path [route-id])
-                  child-element (if element
-                                  #((fac) (om/computed props (merge root-props %1)) element)
-                                  #((fac) (om/computed props (merge root-props %1)))
-                                  )]
-              (recur (butlast p) child-element))
-            (recur (butlast p) element)))))))
+          (if module-id
+            (let [fac #(om/factory render-module-status {:keyfn :module-id})
+                  props (vary-meta {:module-id module-id} :om-path component-path)
+                  tuple [render-module-status fac (fn [_] props)]]
+              (when render-module-status
+                (recur component-path
+                       route-path*
+                       rst*
+                       #(add-to-parent (conj tuple %)))
+                ))
+            (if ui
+              (let [route-id (last component-path)
+                    fac #(om/factory ui {:keyfn (fn [_] route-id)})
+                    props (or (get-in root-props component-path) {})
+                    props (vary-meta props assoc :om-path component-path)
+                    tuple [ui fac #(om/computed props (merge root-props %1))]
+                    component-path* (if nxt (conj component-path nxt))
+
+                    ]
+                (if add-to-parent
+                  (recur component-path* route-path* rst* #(add-to-parent (conj tuple %)))
+                  (recur component-path* route-path* rst* #(conj tuple %)))
+                )
+              (recur (pop component-path) route-path* rst* add-to-parent))))))))
 
 (defn- get-active-query
   [route-atom hierarchy-atom route-id route-params]
@@ -171,8 +196,9 @@
                                root-props (merge
                                             props
                                             route)
-                               element-tree (get-element-tree @routes path root-props ModuleStatus)]
-                           (element-tree)))
+                               [ui factory merge-props child :as t] (get-element-tree @routes path root-props ModuleStatus)]
+                           (println ui)
+                           ((factory) (merge-props {}) child)))
                        )))]
        {:root-class AppRoot
         :set-route! set-active-route!
@@ -183,22 +209,25 @@
 
 (defn has-subroute
   [component]
-  (if (om/children component)
+  (if (first (om/children component))
     true
     false))
+
+(defn render-subroute
+  ([component]
+   (render-subroute component {}))
+  ([component more-computed]
+   (let [[ui fac merge-props child] (first (om/children component))]
+     (println ui)
+     ((fac) (merge-props more-computed) child))))
 
 (defn try-render-subroute
   ([component]
    (try-render-subroute component {}))
   ([component more-computed]
    (let [subroutef (first (om/children component))]
-     (when subroutef (subroutef more-computed)))))
-(defn render-subroute
-  ([component]
-    (render-subroute component {}))
-  ([component more-computed]
-    (let [subroutef (first (om/children component))]
-      (subroutef more-computed))))
+     (when subroutef (render-subroute component more-computed)))))
+
 
 
 

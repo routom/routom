@@ -34,10 +34,10 @@
   (is (= (rt/path->keys [:a :b :c]) [:a :sub-routes :b :sub-routes :c])))
 
 (deftest get-route
-  (let [routes {:root}
-               {:sub-routes
-                {:home
-                 {:ui nil}}}]
+  (let [routes {:root
+                {:sub-routes
+                 {:home
+                  {:ui nil}}}}]
     (is (= (rt/get-route routes
                          '(:root :home))
            {:ui nil}))

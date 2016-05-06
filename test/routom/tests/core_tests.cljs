@@ -29,7 +29,7 @@
                    static om/IQuery
                    (query [this] [:a :b]))
           route-atom (atom {:root {:ui Route1}})]
-      (is (= {:query  [:default {:root [:a :b]} :c :d]
+      (is (= {:query  [:default :c :d {:root [:a :b]}]
               :params {}}
              (rt/get-route-query route-atom [:default] '(:root) {})))))
   (testing "with params"
@@ -41,10 +41,10 @@
                    static om/IQuery
                    (query [this] '[:a ?p1]))
           route-atom (atom {:root {:ui Route1}})]
-      (is (= {:query  '[:default {:root [:a ?p1]} :c :d]
+      (is (= {:query  '[:default :c :d {:root [:a ?p1]}]
               :params {:p1 :e}}
              (rt/get-route-query route-atom [:default] '(:root) {})))
-      (is (= {:query  '[:default {:root [:a ?p1]} :c :d]
+      (is (= {:query  '[:default :c :d {:root [:a ?p1]}]
               :params {:p1 :f}}
              (rt/get-route-query route-atom [:default] '(:root) {:p1 :f})))))
   (testing "with parent route"
@@ -70,28 +70,31 @@
       (is (= {:query  '[
                         ;default query
                         :default
-                        ;route 2 query
-                        {:route2 [:m :n]}
+
                         ;route 2 root query
                         :x ?z
-                        ;route 1 query
-                        {:route1 [:a ?p1]}
                         ;route 1 root query
-                        :c :d]
+                        :c :d
+                        ;route 1 query
+                        {:route1 [:a ?p1
+                                  ;route 2 query
+                                  {:route2 [:m :n]}]}]
               :params {:z  :z
                        :p1 :e}}
              (rt/get-route-query route-atom [:default] '(:route1 :route2) {})))
       (is (= {:query  '[
                         ;default query
                         :default
-                        ;route 2 query
-                        {:route2 [:m :n]}
+
                         ;route 2 root query
                         :x ?z
-                        ;route 1 query
-                        {:route1 [:a ?p1]}
                         ;route 1 root query
-                        :c :d]
+                        :c :d
+                        ;route 1 query
+                        {:route1 [:a ?p1
+                                  ;route 2 query
+                                  {:route2 [:m :n]}]}
+                        ]
               :params {:z  :zz
                        :p1 :p1p1}}
              (rt/get-route-query route-atom [:default] '(:route1 :route2) {:z :zz :p1 :p1p1}))))))
