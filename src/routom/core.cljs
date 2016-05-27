@@ -42,7 +42,7 @@
          query default-query
          component-query nil]
     (if (empty? p)
-      {:query  (if (empty? query) nil (conj query component-query))
+      {:query  (conj query component-query)
        :params (merge params route-params)}
       (let [keys (u/path->keys p)
             {:keys [ui module-id] :as route} (get-in @route-atom keys)]
