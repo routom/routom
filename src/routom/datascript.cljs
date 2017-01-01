@@ -1,5 +1,10 @@
 (ns routom.datascript
-  (:require [datascript.core :as d]))
+  (:require [datascript.core :as d]
+            [clojure.walk :as w]))
+
+(defn strip-nil-vals
+  [tx-data]
+  (w/postwalk (fn [x] (if (map? x) (into {} (filter (comp some? val) x)) x)) tx-data))
 
 (defn merge! [reconciler state res query]
   "An Om-Next merge function that works with datascript.
@@ -7,6 +12,7 @@
   with the value being a datascript connection"
   (let [conn (:conn state)
         tx-data (mapcat second res)
+        tx-data (strip-nil-vals tx-data)
         _ (d/transact! conn tx-data)]
     {:keys    (into [] (remove symbol?) (keys res))
      :next    state
