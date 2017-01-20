@@ -1,10 +1,16 @@
 (ns routom.parsing
   (:require [om.next :as om]
+            [om.util]
             [clojure.walk :refer [postwalk]]))
 
-(defmulti read-value om/dispatch)
-(defmulti read-target om/dispatch)
-(defmulti read-forced-target om/dispatch)
+(defn targeted-dispatch [{:keys [target]} key _] [key target])
+(defn dispatch [_ key _] (if (om.util/ident? key)
+                                          (first key)
+                                          key))
+
+(defmulti read-value dispatch)
+(defmulti read-target targeted-dispatch)
+(defmulti read-forced-target targeted-dispatch)
 
 (defmethod read-target :default
   [{target :target} key params]
@@ -13,13 +19,6 @@
 (defmethod read-forced-target :default
   [{{target :target} :ast} key params]
   {target true})
-
-(defmethod read-value :default
-  [{:keys [state]} k _]
-  (let [st @state]
-    (if-let [[_ v] (find st k)]
-      {:value v}
-      {:value :not-found})))
 
 (defn read-fn
   "An Om.Next parser-compatible read function
@@ -35,11 +34,25 @@
     :else (read-value env key params))
   )
 
-(defmulti mutate om/dispatch)
+(defmulti mutate dispatch)
+(defmulti mutate-target targeted-dispatch)
+(defmulti mutate-forced-target targeted-dispatch)
+
+(defmethod mutate-target :default
+  [{target :target} key params]
+  {target false})
+
+(defmethod mutate-forced-target :default
+  [{{target :target} :ast} key params]
+  {target true})
 
 (defn mutate-fn
-  [env key params]
-  (mutate env key params))
+  [{target :target {forced-target :target} :ast :as env} key params]
+  (cond
+    forced-target (when (= forced-target target)
+                    (mutate-forced-target env key params))
+    target (mutate-target env key params)
+    :else (mutate env key params)))
 
 (def parser (om/parser {:read read-fn :mutate mutate-fn}))
 

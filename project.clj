@@ -1,4 +1,4 @@
-(defproject org.routom/routom "0.1.0-alpha10"
+(defproject org.routom/routom "0.1.0-alpha11-SNAPSHOT"
   :description " An Om.Next routing solution for the browser and React-Native"
   :url "https://github.com/routom/routom"
   :license {:name "The Unlicense"
@@ -46,8 +46,8 @@
 
                 :compiler {:main routom.tests.run-tests
                            :asset-path "js/compiled/out"
-                           :output-to "resources/public/js/compiled/routom.js"
-                           :output-dir "resources/public/js/compiled/out"
+                           :output-to "target/test/compiled/routom.js"
+                           :output-dir "target/test/compiled/out"
                            :source-map-timestamp true}}
                ;; This next build is an compressed minified build for
                ;; production. You can build this with:
