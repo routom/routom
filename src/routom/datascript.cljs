@@ -11,7 +11,10 @@
   This function expects the app state atom to have a key :conn
   with the value being a datascript connection"
   (let [conn (:conn state)
-        tx-data (mapcat second res)
+        tx-data (mapcat #(let [tx-data (second %)]
+                           (if (map? tx-data)
+                             [tx-data]
+                             tx-data)) res)
         tx-data (strip-nil-vals tx-data)
         _ (d/transact! conn tx-data)]
     {:keys    (into [] (remove symbol?) (keys res))
