@@ -63,8 +63,8 @@
   (postwalk
     (fn [{:keys [children] :as x}]
       (if children
-        (update x :children #(remove (fn [{:keys [key]}]
-                                       (if-let [ns (namespace key)]
+        (update x :children #(remove (fn [{:keys [dispatch-key]}]
+                                       (if-let [ns (namespace dispatch-key)]
                                          (some (fn [re] (re-find re ns)) res))) %))
         x))
     ast))
