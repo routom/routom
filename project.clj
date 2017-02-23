@@ -45,9 +45,9 @@
                 :figwheel {:on-jsload routom.tests.run-tests/on-js-reload}
 
                 :compiler {:main routom.tests.run-tests
-                           :asset-path "js/compiled/out"
-                           :output-to "target/test/compiled/routom.js"
-                           :output-dir "target/test/compiled/out"
+                           :asset-path "js/compiled/test/out"
+                           :output-to "resources/public/js/compiled/test/routom.js"
+                           :output-dir "resources/public/js/compiled/test/out/"
                            :source-map-timestamp true}}
                ;; This next build is an compressed minified build for
                ;; production. You can build this with:
