@@ -73,12 +73,13 @@
 
                         ;route 2 root query
                         :x ?z
+                        ;route 2 query
+                        {:route2 [:m :n]}
                         ;route 1 root query
                         :c :d
                         ;route 1 query
                         {:route1 [:a ?p1
-                                  ;route 2 query
-                                  {:route2 [:m :n]}]}]
+                                  ]}]
               :params {:z  :z
                        :p1 :e}}
              (rt/get-route-query route-atom [:default] '(:route1 :route2) {})))
@@ -88,12 +89,13 @@
 
                         ;route 2 root query
                         :x ?z
+                        ;route 2 query
+                        {:route2 [:m :n]}
                         ;route 1 root query
                         :c :d
                         ;route 1 query
-                        {:route1 [:a ?p1
-                                  ;route 2 query
-                                  {:route2 [:m :n]}]}
+                        {:route1 [:a ?p1]}
+
                         ]
               :params {:z  :zz
                        :p1 :p1p1}}

@@ -42,7 +42,7 @@
          query default-query
          component-query nil]
     (if (empty? p)
-      {:query  (conj query component-query)
+      {:query  query #_ (conj query component-query)
        :params (merge params route-params)}
       (let [keys (u/path->keys p)
             {:keys [ui module-id] :as route} (get-in @route-atom keys)]
@@ -56,8 +56,9 @@
             (let [root-query (or (call-proto ui #(implements? IRootQuery %) root-query) [])
                   query-expr (with-meta (call-proto ui #(implements? om/IQuery %) om/query) {:component ui})
                   component-query (if component-query (conj query-expr component-query) query-expr)
-                  component-query {(last keys) component-query}
+                  component-query {(last keys) query-expr}
                   new-query (into query root-query)
+                  new-query (conj new-query component-query)
                   new-params (merge params (call-proto ui #(implements? om/IQuery %) om/params))]
               (recur (butlast p) new-params new-query component-query))
             (recur (butlast p) params query component-query))))
@@ -118,7 +119,7 @@
                     props (or (get-in root-props component-path) {})
                     props (vary-meta props assoc :om-path component-path)
                     tuple [ui fac #(om/computed props (merge root-props %1))]
-                    component-path* (if nxt (conj component-path nxt))
+                    component-path* [nxt] #_ (if nxt (conj component-path nxt))
 
                     ]
                 (if add-to-parent
