@@ -106,25 +106,25 @@
           (if module-id
             (let [fac #(om/factory render-module-status {:keyfn :module-id})
                   props (vary-meta {:module-id module-id} :om-path component-path)
-                  tuple [render-module-status fac (fn [_] props)]]
+                  [_ fac merge-props :as tuple] [render-module-status fac (fn [_] props)]]
               (when render-module-status
                 (recur component-path
                        route-path*
                        rst*
-                       #(add-to-parent (conj tuple %)))
+                       #(add-to-parent ((fac) (merge-props {}) %)))
                 ))
             (if ui
               (let [route-id (last component-path)
                     fac #(om/factory ui {:keyfn (fn [_] route-id)})
                     props (or (get-in root-props component-path) {})
                     props (vary-meta props assoc :om-path component-path)
-                    tuple [ui fac #(om/computed props (merge root-props %1))]
+                    [_ fac merge-props :as tuple] [ui fac #(om/computed props (merge root-props %1))]
                     component-path* [nxt] #_ (if nxt (conj component-path nxt))
 
                     ]
                 (if add-to-parent
-                  (recur component-path* route-path* rst* #(add-to-parent (conj tuple %)))
-                  (recur component-path* route-path* rst* #(conj tuple %)))
+                  (recur component-path* route-path* rst* #(add-to-parent ((fac) (merge-props {}) %)))
+                  (recur component-path* route-path* rst* #((fac) (merge-props {}) %)))
                 )
               (recur (pop component-path) route-path* rst* add-to-parent))))))))
 
@@ -197,9 +197,9 @@
                                root-props (merge
                                             props
                                             route)
-                               [ui factory merge-props child :as t] (get-element-tree @routes path root-props ModuleStatus)]
-                           (println ui)
-                           ((factory) (merge-props {}) child)))
+                               el (get-element-tree @routes path root-props ModuleStatus)]
+
+                           el))
                        )))]
        {:root-class AppRoot
         :set-route! set-active-route!
